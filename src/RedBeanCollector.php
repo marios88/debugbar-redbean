@@ -15,13 +15,16 @@ class RedBeanCollector extends \DebugBar\DataCollector\DataCollector implements 
      */
     protected $logger;
 
+    protected $name;
+
     /**
      * Set RedBean's logger
      * @param \RedBeanPHP\Logger $logger
      */
-    public function __construct(\RedBeanPHP\Logger $logger)
+    public function __construct(\RedBeanPHP\Logger $logger,$name = 'redbean')
     {
         $this->logger = $logger;
+        $this->name = $name;
     }
 
     /**
@@ -31,52 +34,57 @@ class RedBeanCollector extends \DebugBar\DataCollector\DataCollector implements 
     {
         // Get all SQL output
         $queries = [];
+        $totalExecTime = 0;
 
-        $output = $this->logger->grep(' ');
+        $output = $this->logger->getLogs();
+        $outputCount = count($output);
         $queries = array();
-        foreach ($output as $key => $value)
-        {
-            // Clean all "resuldsets" outputs
-            if (substr($value, 0, 9) == 'resultset')
-            {
-                unset($output[$key]);
+        for($i=0;$i<$outputCount;$i+=4){
+            if (! self::$showKeepCache) {
+                $output[$i] = str_replace('-- keep-cache', '', $output[$i]);
+                $output[($i+1)] = str_replace('-- keep-cache', '', $output[($i+1)]);
             }
-            else
-            {
-                if (! self::$showKeepCache) {
-                    $value = str_replace('-- keep-cache', '', $value);
-                }
+            if($this->name == 'redbean'){
                 $queries[] = array(
                     // 1 space maximum and no HTML included tags by RedBean
-                    'sql' => strip_tags(preg_replace('!\s+!', ' ', $value))
-                    //'duration_str' => 1,
+                    'sql' => strip_tags(preg_replace('!\s+!', ' ', $output[$i])),
+                    'connection' => $output[($i+2)],
+                    'duration' => $output[($i+3)],
+                    'duration_str' => $this->formatDuration($output[($i+3)])
+                );
+            }else{
+                $queries[] = array(
+                    // 1 space maximum and no HTML included tags by RedBean
+                    'sql' => strip_tags(preg_replace('!\s+!', ' ', $output[($i+1)])),
                 );
             }
+            $totalExecTime += $output[($i+3)];
         }
 
         return array(
             'nb_statements' => count($queries),
-            'statements' => $queries,
-            //'accumulated_duration_str' => 1,
+            'accumulated_duration' => $totalExecTime,
+            'accumulated_duration_str' => $this->formatDuration($totalExecTime),
+            'statements' => $queries
         );
     }
 
     public function getName()
     {
-        return 'redbean';
+        return $this->name;
     }
 
     public function getWidgets()
     {
         return array(
-            "Database" => array(
+            $this->name => array(
                 "icon" => "inbox",
                 "widget" => "PhpDebugBar.Widgets.SQLQueriesWidget",
-                "map" => "redbean",
+                "map" => $this->name,
                 "default" => "[]"
             ),
-            "Database:badge" => array(
-                "map" => "redbean.nb_statements",
+            $this->name.":badge" => array(
+                "map" => $this->name.".nb_statements",
                 "default" => 0
             )
         );
