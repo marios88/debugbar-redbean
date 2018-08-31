@@ -47,7 +47,7 @@ class RedBeanCollector extends \DebugBar\DataCollector\DataCollector implements 
             if($this->name == 'redbean'){
                 $queries[] = array(
                     // 1 space maximum and no HTML included tags by RedBean
-                    'sql' => strip_tags(preg_replace('!\s+!', ' ', $output[$i])),
+                    'sql' => htmlspecialchars(preg_replace('!\s+!', ' ', $output[$i])),
                     'connection' => $output[($i+2)],
                     'duration' => $output[($i+3)],
                     'duration_str' => $this->formatDuration($output[($i+3)])
@@ -55,7 +55,7 @@ class RedBeanCollector extends \DebugBar\DataCollector\DataCollector implements 
             }else{
                 $queries[] = array(
                     // 1 space maximum and no HTML included tags by RedBean
-                    'sql' => strip_tags(preg_replace('!\s+!', ' ', $output[($i+1)])),
+                    'sql' => htmlspecialchars(preg_replace('!\s+!', ' ', $output[($i+1)])),
                 );
             }
             $totalExecTime += $output[($i+3)];
